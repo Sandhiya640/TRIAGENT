@@ -23,14 +23,14 @@ export default function IncidentComparison() {
     }
   }, [idA, idB]);
 
-  const first = getIncident(idA);
-  const second = getIncident(idB);
+  const first = getIncident(idA) || backendComparison?.incidentA;
+  const second = getIncident(idB) || backendComparison?.incidentB;
 
   if (!first || !second) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-ink-500">
-        <p>Incidents not found for comparison.</p>
-        <button onClick={() => navigate("/app")} className="text-signal-cyan">
+        <p>Loading comparison from TRIAGENT backend...</p>
+        <button onClick={() => navigate("/app")} className="text-signal-cyan font-medium">
           Back to Command Center
         </button>
       </div>

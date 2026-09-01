@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, ShieldCheck, GitCompareArrows, CircleAlert, Calculator } from "lucide-react";
 import Topbar from "../components/Topbar";
@@ -6,18 +7,40 @@ import PriorityBadge from "../components/PriorityBadge";
 import FactorContribution from "../components/FactorContribution";
 import { useIncidents } from "../context/IncidentsContext";
 import { FACTORS, explainRanking, riskTags } from "../utils/priorityEngine";
+import { api } from "../services/api";
 
 export default function IncidentDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { incidents, getIncident, markInvestigating } = useIncidents();
-  const incident = getIncident(id);
+  const { incidents, getIncident, markInvestigating, isLoading: contextLoading } = useIncidents();
+  const [fetchedIncident, setFetchedIncident] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const contextIncident = getIncident(id);
+  const incident = contextIncident || fetchedIncident;
+
+  useEffect(() => {
+    if (!contextIncident && id) {
+      setLoading(true);
+      api.getIncidentDetails(id)
+        .then((res) => setFetchedIncident(res))
+        .catch((err) => console.warn("[TRIAGENT API] Incident details fetch fallback failed:", err))
+        .finally(() => setLoading(false));
+    }
+  }, [contextIncident, id]);
 
   if (!incident) {
+    if (contextLoading || loading) {
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-3 text-ink-500">
+          <p>Loading incident details from backend...</p>
+        </div>
+      );
+    }
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-ink-500">
         <p>Incident not found.</p>
-        <button onClick={() => navigate("/app")} className="text-signal-cyan">
+        <button onClick={() => navigate("/app")} className="text-signal-cyan font-medium">
           Back to Command Center
         </button>
       </div>
