@@ -8,7 +8,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 @Component
@@ -39,7 +39,7 @@ public class DatabasePersistenceTestRunner implements CommandLineRunner {
                 "Ransomware Detection",
                 "Database Persistence Test Alert",
                 "Production DB Node",
-                LocalDateTime.now(),
+                Instant.now(),
                 500,
                 "Automated persistence verification test incident.",
                 "Verify database commit and update integrity.",

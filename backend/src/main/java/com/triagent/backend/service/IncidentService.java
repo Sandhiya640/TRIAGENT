@@ -8,7 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,7 +51,7 @@ public class IncidentService {
                 req.getType() != null ? req.getType() : "Security Alert",
                 req.getTitle() != null ? req.getTitle() : req.getType(),
                 req.getAsset() != null ? req.getAsset() : "Unspecified Asset",
-                LocalDateTime.now(),
+                Instant.now(),
                 req.getAffectedUsersCount(),
                 req.getDescription() != null ? req.getDescription() : "No additional description provided.",
                 "Review raw metrics and execute security containment procedures.",
@@ -86,7 +87,7 @@ public class IncidentService {
                 inc.setTriageRank(r.getRank());
                 if (inc.getStatus() == IncidentStatus.AWAITING_TRIAGE) {
                     inc.setStatus(IncidentStatus.TRIAGED);
-                    inc.setTriagedAt(LocalDateTime.now());
+                    inc.setTriagedAt(Instant.now());
                 }
             }
         }
@@ -99,28 +100,28 @@ public class IncidentService {
     public List<IncidentResponse> loadDemoIncidents() {
         incidentRepository.deleteAll();
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         List<Incident> demoList = Arrays.asList(
-                new Incident("INC-2401", "Data Exfiltration", "Exfiltration from Production DB", "Production Customer PII Database", now.minusMinutes(4), 3500, "Unusual outbound data transfer detected to unrecognized IP address.", "Isolate host DB-PROD-01 and terminate sockets.", 8, 10, 10, 10, 95),
-                new Incident("INC-2402", "Ransomware Detection", "LockBit Ransomware Activity", "Core Financial & Payroll System", now.minusMinutes(9), 1200, "Endpoint flagged ransomware encryption behavior on core SMB shares.", "Quarantine FIN-SRV-04 and isolate offline backups.", 10, 10, 9, 10, 98),
-                new Incident("INC-2403", "Insider Threat", "Unauthorized Confidential Data Download", "HR & Legal Records Repository", now.minusMinutes(14), 450, "Departing contractor downloaded 50 GB of confidential HR records.", "Revoke IAM permissions and issue emergency legal hold.", 7, 10, 10, 9, 90),
-                new Incident("INC-2404", "Brute Force Attack", "Credential Stuffing Campaign", "Identity Gateway (Corporate SSO)", now.minusMinutes(19), 2800, "Distributed brute force attack targeting corporate SSO login portal.", "Enforce IP rate limiting and activate step-up MFA.", 9, 8, 7, 9, 92),
-                new Incident("INC-2405", "DDoS Activity", "Volumetric SYN Flood", "Edge Firewall Load Balancer", now.minusMinutes(24), 5000, "Volumetric SYN flood saturating primary edge ingress bandwidth.", "Reroute incoming edge traffic to cloud scrubber network.", 8, 8, 4, 8, 99),
-                new Incident("INC-2406", "Phishing Campaign", "Spear-phishing OAuth Consent Spam", "Corporate Email Gateway", now.minusMinutes(29), 1500, "Phishing email containing malicious OAuth consent URL delivered to staff.", "Purge inbox messages and invalidate user OAuth grants.", 8, 7, 7, 7, 85),
-                new Incident("INC-2407", "Privilege Escalation", "Domain Admin Token Impersonation", "Active Directory Domain Controller", now.minusMinutes(34), 800, "Kerberoasting exploit attempting SYSTEM privilege escalation on DC.", "Isolate AD-DC-01 and rotate Kerberos krbtgt account.", 9, 9, 8, 10, 88),
-                new Incident("INC-2408", "Malware Detection", "InfoStealer Trojan Execution", "Executive Boardroom Workstation", now.minusMinutes(39), 12, "Trojan spyware observed harvesting browser passwords and tokens.", "Isolate EXEC-LAP-01 and revoke active session tokens.", 7, 8, 9, 8, 82),
-                new Incident("INC-2409", "Unauthorized Access", "API Key Misuse Spike", "Payment Gateway Integration API", now.minusMinutes(44), 950, "Unauthenticated API request burst targeting payment endpoints.", "Invalidate API key pair and block origin subnet.", 8, 9, 8, 9, 87),
-                new Incident("INC-2410", "Suspicious Network Traffic", "UDP Traffic Anomaly", "Core Kubernetes Ingress Cluster", now.minusMinutes(49), 600, "Anomalous UDP burst detected originating from compromised worker pod.", "Isolate namespace and apply network egress policy.", 6, 7, 5, 8, 70),
-                new Incident("INC-2411", "Data Exfiltration", "Staging DB Export Spike", "Staging Test Database", now.minusMinutes(54), 0, "Staging database export attempt to external bucket.", "Verify staging firewall rules and block egress S3 bucket.", 9, 3, 2, 3, 80),
-                new Incident("INC-2412", "Malware Detection", "PowerShell Memory Dump", "Engineering Sandbox Workstation", now.minusMinutes(59), 5, "Suspicious PowerShell command line attempting process LSASS dump.", "Isolate ENG-NODE-12 and run EDR quarantine scan.", 6, 4, 5, 5, 85),
-                new Incident("INC-2413", "Unauthorized Access", "Expired Token Integration Burst", "Legacy Partner Proxy Node", now.minusMinutes(64), 80, "Burst of unauthorized API requests using expired partner token.", "Revoke legacy proxy credentials and notify partner security team.", 5, 5, 6, 5, 75),
-                new Incident("INC-2414", "Phishing Campaign", "Spam Mailchimp Relay Attempt", "Marketing Relay Server", now.minusMinutes(69), 200, "Untrusted outbound SMTP relay attempts flagged by email security gateway.", "Block outbound port 25 and check relay authentication.", 5, 4, 3, 4, 65),
-                new Incident("INC-2415", "Privilege Escalation", "Container Root Escape Exploit", "Isolated Jenkins Build Worker", now.minusMinutes(74), 2, "Local container breakout vulnerability exploited on isolated worker node.", "Terminate container instance and update Docker engine.", 8, 3, 2, 4, 60),
-                new Incident("INC-2416", "Suspicious Network Traffic", "Guest Network Multicast Sweep", "Guest Wi-Fi Subnet Router", now.minusMinutes(79), 45, "High volume mDNS/LLMNR traffic sweep on guest wireless network.", "Isolate guest VLAN and block internal routing table.", 4, 2, 1, 2, 50),
-                new Incident("INC-2417", "Port Scan", "TCP Port Sweep", "Public Web Application Firewall", now.minusMinutes(84), 0, "Sequential TCP port scan detected from external IP range.", "Verify cloud WAF auto-drop rules for scanning IPs.", 4, 3, 2, 4, 50),
-                new Incident("INC-2418", "Failed Login Burst", "VPN Authentication Failure Spike", "Corporate Remote VPN Concentrator", now.minusMinutes(89), 18, "Burst of failed password attempts for remote employee VPN logins.", "Check user lockout status and monitor authentication log.", 3, 3, 2, 4, 40),
-                new Incident("INC-2419", "Port Scan", "DNS Query Reconnaissance", "Public DNS Secondary Nameserver", now.minusMinutes(94), 0, "High rate of DNS ANY requests targeting public nameserver.", "Enforce response rate limiting (RRL) on DNS service.", 2, 2, 1, 3, 30),
-                new Incident("INC-2420", "Failed Login Burst", "Internal Search Portal Failures", "Internal Wiki Portal", now.minusMinutes(99), 3, "Repeated failed logins recorded on internal intranet wiki.", "Reset internal account password if lock threshold reached.", 1, 1, 1, 2, 25)
+                new Incident("INC-2401", "Data Exfiltration", "Exfiltration from Production DB", "Production Customer PII Database", now.minus(Duration.ofMinutes(4)), 3500, "Unusual outbound data transfer detected to unrecognized IP address.", "Isolate host DB-PROD-01 and terminate sockets.", 8, 10, 10, 10, 95),
+                new Incident("INC-2402", "Ransomware Detection", "LockBit Ransomware Activity", "Core Financial & Payroll System", now.minus(Duration.ofMinutes(9)), 1200, "Endpoint flagged ransomware encryption behavior on core SMB shares.", "Quarantine FIN-SRV-04 and isolate offline backups.", 10, 10, 9, 10, 98),
+                new Incident("INC-2403", "Insider Threat", "Unauthorized Confidential Data Download", "HR & Legal Records Repository", now.minus(Duration.ofMinutes(14)), 450, "Departing contractor downloaded 50 GB of confidential HR records.", "Revoke IAM permissions and issue emergency legal hold.", 7, 10, 10, 9, 90),
+                new Incident("INC-2404", "Brute Force Attack", "Credential Stuffing Campaign", "Identity Gateway (Corporate SSO)", now.minus(Duration.ofMinutes(19)), 2800, "Distributed brute force attack targeting corporate SSO login portal.", "Enforce IP rate limiting and activate step-up MFA.", 9, 8, 7, 9, 92),
+                new Incident("INC-2405", "DDoS Activity", "Volumetric SYN Flood", "Edge Firewall Load Balancer", now.minus(Duration.ofMinutes(24)), 5000, "Volumetric SYN flood saturating primary edge ingress bandwidth.", "Reroute incoming edge traffic to cloud scrubber network.", 8, 8, 4, 8, 99),
+                new Incident("INC-2406", "Phishing Campaign", "Spear-phishing OAuth Consent Spam", "Corporate Email Gateway", now.minus(Duration.ofMinutes(29)), 1500, "Phishing email containing malicious OAuth consent URL delivered to staff.", "Purge inbox messages and invalidate user OAuth grants.", 8, 7, 7, 7, 85),
+                new Incident("INC-2407", "Privilege Escalation", "Domain Admin Token Impersonation", "Active Directory Domain Controller", now.minus(Duration.ofMinutes(34)), 800, "Kerberoasting exploit attempting SYSTEM privilege escalation on DC.", "Isolate AD-DC-01 and rotate Kerberos krbtgt account.", 9, 9, 8, 10, 88),
+                new Incident("INC-2408", "Malware Detection", "InfoStealer Trojan Execution", "Executive Boardroom Workstation", now.minus(Duration.ofMinutes(39)), 12, "Trojan spyware observed harvesting browser passwords and tokens.", "Isolate EXEC-LAP-01 and revoke active session tokens.", 7, 8, 9, 8, 82),
+                new Incident("INC-2409", "Unauthorized Access", "API Key Misuse Spike", "Payment Gateway Integration API", now.minus(Duration.ofMinutes(44)), 950, "Unauthenticated API request burst targeting payment endpoints.", "Invalidate API key pair and block origin subnet.", 8, 9, 8, 9, 87),
+                new Incident("INC-2410", "Suspicious Network Traffic", "UDP Traffic Anomaly", "Core Kubernetes Ingress Cluster", now.minus(Duration.ofMinutes(49)), 600, "Anomalous UDP burst detected originating from compromised worker pod.", "Isolate namespace and apply network egress policy.", 6, 7, 5, 8, 70),
+                new Incident("INC-2411", "Data Exfiltration", "Staging DB Export Spike", "Staging Test Database", now.minus(Duration.ofMinutes(54)), 0, "Staging database export attempt to external bucket.", "Verify staging firewall rules and block egress S3 bucket.", 9, 3, 2, 3, 80),
+                new Incident("INC-2412", "Malware Detection", "PowerShell Memory Dump", "Engineering Sandbox Workstation", now.minus(Duration.ofMinutes(59)), 5, "Suspicious PowerShell command line attempting process LSASS dump.", "Isolate ENG-NODE-12 and run EDR quarantine scan.", 6, 4, 5, 5, 85),
+                new Incident("INC-2413", "Unauthorized Access", "Expired Token Integration Burst", "Legacy Partner Proxy Node", now.minus(Duration.ofMinutes(64)), 80, "Burst of unauthorized API requests using expired partner token.", "Revoke legacy proxy credentials and notify partner security team.", 5, 5, 6, 5, 75),
+                new Incident("INC-2414", "Phishing Campaign", "Spam Mailchimp Relay Attempt", "Marketing Relay Server", now.minus(Duration.ofMinutes(69)), 200, "Untrusted outbound SMTP relay attempts flagged by email security gateway.", "Block outbound port 25 and check relay authentication.", 5, 4, 3, 4, 65),
+                new Incident("INC-2415", "Privilege Escalation", "Container Root Escape Exploit", "Isolated Jenkins Build Worker", now.minus(Duration.ofMinutes(74)), 2, "Local container breakout vulnerability exploited on isolated worker node.", "Terminate container instance and update Docker engine.", 8, 3, 2, 4, 60),
+                new Incident("INC-2416", "Suspicious Network Traffic", "Guest Network Multicast Sweep", "Guest Wi-Fi Subnet Router", now.minus(Duration.ofMinutes(79)), 45, "High volume mDNS/LLMNR traffic sweep on guest wireless network.", "Isolate guest VLAN and block internal routing table.", 4, 2, 1, 2, 50),
+                new Incident("INC-2417", "Port Scan", "TCP Port Sweep", "Public Web Application Firewall", now.minus(Duration.ofMinutes(84)), 0, "Sequential TCP port scan detected from external IP range.", "Verify cloud WAF auto-drop rules for scanning IPs.", 4, 3, 2, 4, 50),
+                new Incident("INC-2418", "Failed Login Burst", "VPN Authentication Failure Spike", "Corporate Remote VPN Concentrator", now.minus(Duration.ofMinutes(89)), 18, "Burst of failed password attempts for remote employee VPN logins.", "Check user lockout status and monitor authentication log.", 3, 3, 2, 4, 40),
+                new Incident("INC-2419", "Port Scan", "DNS Query Reconnaissance", "Public DNS Secondary Nameserver", now.minus(Duration.ofMinutes(94)), 0, "High rate of DNS ANY requests targeting public nameserver.", "Enforce response rate limiting (RRL) on DNS service.", 2, 2, 1, 3, 30),
+                new Incident("INC-2420", "Failed Login Burst", "Internal Search Portal Failures", "Internal Wiki Portal", now.minus(Duration.ofMinutes(99)), 3, "Repeated failed logins recorded on internal intranet wiki.", "Reset internal account password if lock threshold reached.", 1, 1, 1, 2, 25)
         );
 
         incidentRepository.saveAll(demoList);

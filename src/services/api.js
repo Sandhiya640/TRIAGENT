@@ -3,13 +3,19 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 export function formatIncident(inc) {
   if (!inc) return null;
   const statusStr = typeof inc.status === "string" ? inc.status.toUpperCase() : "";
+
+  let detectedAt = inc.detectedAt;
+  if (typeof detectedAt === "string" && !detectedAt.endsWith("Z") && !detectedAt.includes("+") && !detectedAt.includes("-", 10)) {
+    detectedAt = detectedAt + "Z";
+  }
+
   return {
     ...inc,
     id: inc.id,
     type: inc.type,
     title: inc.title || inc.type,
     asset: inc.asset,
-    detectedAt: inc.detectedAt,
+    detectedAt: detectedAt,
     affectedUsersCount: inc.affectedUsersCount ?? 0,
     description: inc.description || "No description provided.",
     recommendedAction: inc.recommendedAction || "Review raw factor metrics and execute containment procedures.",

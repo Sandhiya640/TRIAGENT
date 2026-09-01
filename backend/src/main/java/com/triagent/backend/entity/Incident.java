@@ -1,7 +1,7 @@
 package com.triagent.backend.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "incidents")
@@ -21,7 +21,7 @@ public class Incident {
     private String asset;
 
     @Column(name = "detected_at")
-    private LocalDateTime detectedAt;
+    private Instant detectedAt;
 
     @Column(name = "affected_users_count")
     private int affectedUsersCount;
@@ -64,15 +64,15 @@ public class Incident {
     private Integer triageRank;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 
     @Column(name = "triaged_at")
-    private LocalDateTime triagedAt;
+    private Instant triagedAt;
 
     public Incident() {
     }
 
-    public Incident(String id, String type, String title, String asset, LocalDateTime detectedAt,
+    public Incident(String id, String type, String title, String asset, Instant detectedAt,
                     int affectedUsersCount, String description, String recommendedAction,
                     int severityRaw, int businessImpactRaw, int dataSensitivityRaw,
                     int assetImportanceRaw, int attackConfidenceRaw) {
@@ -80,7 +80,7 @@ public class Incident {
         this.type = type;
         this.title = title != null ? title : type;
         this.asset = asset;
-        this.detectedAt = detectedAt != null ? detectedAt : LocalDateTime.now();
+        this.detectedAt = detectedAt != null ? detectedAt : Instant.now();
         this.affectedUsersCount = affectedUsersCount;
         this.description = description;
         this.recommendedAction = recommendedAction;
@@ -125,11 +125,11 @@ public class Incident {
         this.asset = asset;
     }
 
-    public LocalDateTime getDetectedAt() {
+    public Instant getDetectedAt() {
         return detectedAt;
     }
 
-    public void setDetectedAt(LocalDateTime detectedAt) {
+    public void setDetectedAt(Instant detectedAt) {
         this.detectedAt = detectedAt;
     }
 
@@ -229,19 +229,19 @@ public class Incident {
         this.triageRank = triageRank;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
 
-    public LocalDateTime getTriagedAt() {
+    public Instant getTriagedAt() {
         return triagedAt;
     }
 
-    public void setTriagedAt(LocalDateTime triagedAt) {
+    public void setTriagedAt(Instant triagedAt) {
         this.triagedAt = triagedAt;
     }
 }

@@ -4,7 +4,7 @@ import com.triagent.backend.entity.IncidentStatus;
 import com.triagent.backend.entity.PriorityLevel;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 @Schema(description = "Full response payload for an incident including raw metrics, computed weighted score, priority level, rank, and 4-step factor contributions")
@@ -23,7 +23,7 @@ public class IncidentResponse {
     private String asset;
 
     @Schema(description = "Timestamp when alert was detected")
-    private LocalDateTime detectedAt;
+    private Instant detectedAt;
 
     @Schema(description = "Numeric count of affected users", example = "2847")
     private int affectedUsersCount;
@@ -105,11 +105,11 @@ public class IncidentResponse {
         this.asset = asset;
     }
 
-    public LocalDateTime getDetectedAt() {
+    public Instant getDetectedAt() {
         return detectedAt;
     }
 
-    public void setDetectedAt(LocalDateTime detectedAt) {
+    public void setDetectedAt(Instant detectedAt) {
         this.detectedAt = detectedAt;
     }
 
