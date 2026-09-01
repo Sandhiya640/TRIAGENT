@@ -50,3 +50,37 @@ src/
 3. Click any incident to open its full breakdown — circular score, weighted factor bars, and a generated explanation.
 4. Click **View Comparison** (or **Why #1 outranks #2?** on the dashboard) to see a side-by-side, factor-level explanation of the ranking decision, including an expandable scoring calculation.
 5. Click **Add Incident**, adjust the sliders to watch the live priority preview update, then submit — the new incident is scored and takes its place in the queue.
+
+## Production Deployment Instructions
+
+### Render Backend Deployment (Spring Boot + SQLite)
+
+To deploy the TRIAGENT Java Spring Boot REST API on Render:
+
+1. **Service Type**: Web Service (Java 17 runtime)
+2. **Root Directory**: `backend`
+3. **Build Command**: `mvn clean package -DskipTests`
+4. **Start Command**: `java -jar target/backend-0.0.1-SNAPSHOT.jar`
+5. **Environment Variables**:
+   - `PORT`: Provided automatically by Render (defaults to `8080` locally)
+   - `DB_FILE_PATH`: Path to SQLite database file on persistent disk (e.g., `/var/data/triagent.db`)
+   - `FRONTEND_URL`: Production Vercel frontend URL (e.g., `https://triagent.vercel.app`)
+   - `JAVA_VERSION`: `17`
+6. **Render Persistent Disk Requirement**:
+   - **Disk Name**: `triagent-data`
+   - **Mount Path**: `/var/data`
+   - **Size**: 1 GB
+   - Set `DB_FILE_PATH` to `/var/data/triagent.db`. The backend automatically initializes and manages parent directories on startup.
+7. **Health Check Endpoint**:
+   - **Endpoint**: `GET /api/health`
+   - **Response Code**: `200 OK`
+   - **Sample Response**: `{"status":"UP","service":"triagent-backend","timestamp":"..."}`
+
+### Vercel Frontend Deployment (React + Vite)
+
+To deploy the React frontend on Vercel:
+
+1. **Framework Preset**: Vite
+2. **Build Command**: `npm run build`
+3. **Output Directory**: `dist`
+4. **Environment Variable**: `VITE_API_BASE_URL` set to `https://<your-render-backend-name>.onrender.com/api`
