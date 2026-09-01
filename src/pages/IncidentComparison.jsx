@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ChevronDown, TrendingUp, Sparkles, Scale } from "lucide-react";
@@ -6,12 +6,22 @@ import Topbar from "../components/Topbar";
 import PriorityBadge from "../components/PriorityBadge";
 import { useIncidents } from "../context/IncidentsContext";
 import { FACTORS, explainComparison } from "../utils/priorityEngine";
+import { api } from "../services/api";
 
 export default function IncidentComparison() {
   const { idA, idB } = useParams();
   const navigate = useNavigate();
   const { getIncident } = useIncidents();
   const [showCalc, setShowCalc] = useState(true);
+  const [backendComparison, setBackendComparison] = useState(null);
+
+  useEffect(() => {
+    if (idA && idB) {
+      api.compareIncidents(idA, idB)
+        .then((res) => setBackendComparison(res))
+        .catch((err) => console.warn("[TRIAGENT API] Comparison fetch fallback:", err));
+    }
+  }, [idA, idB]);
 
   const first = getIncident(idA);
   const second = getIncident(idB);
@@ -32,8 +42,8 @@ export default function IncidentComparison() {
     (first.rank || 0) <= (second.rank || 0) ? [first, second] : [second, first];
 
   const diffs = FACTORS.map((f) => {
-    const c1 = incidentA.contributions[f.key];
-    const c2 = incidentB.contributions[f.key];
+    const c1 = incidentA.contributions[f.key] || { normalized: 0, contribution: 0, weightPercent: 0 };
+    const c2 = incidentB.contributions[f.key] || { normalized: 0, contribution: 0, weightPercent: 0 };
     const normDiff = c1.normalized - c2.normalized;
     const contribDiff = Math.round((c1.contribution - c2.contribution) * 10) / 10;
     return {
@@ -46,7 +56,7 @@ export default function IncidentComparison() {
   });
 
   const advantages = diffs.filter((d) => d.contribDiff > 0).sort((a, b) => b.contribDiff - a.contribDiff);
-  const explanation = explainComparison(incidentA, incidentB);
+  const explanation = backendComparison?.explanation || explainComparison(incidentA, incidentB);
 
   return (
     <>
