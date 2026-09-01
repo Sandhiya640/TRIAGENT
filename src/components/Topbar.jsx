@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bell,
@@ -12,11 +13,14 @@ import {
   Check,
   ChevronRight,
   ShieldCheck,
+  User,
+  Settings,
 } from "lucide-react";
 import { useIncidents } from "../context/IncidentsContext";
 import ProfileSettingsModal from "./ProfileSettingsModal";
 
 export default function Topbar({ title, subtitle }) {
+  const navigate = useNavigate();
   const { incidents = [], incomingIncidents = [] } = useIncidents();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -321,13 +325,27 @@ export default function Topbar({ title, subtitle }) {
                     <button
                       onClick={() => {
                         setShowProfile(false);
-                        setShowSettingsModal(true);
+                        navigate("/app/profile");
                       }}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-ink-200 hover:bg-base-800 hover:text-ink-100 transition-colors"
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-ink-200 hover:bg-base-800 hover:text-ink-100 transition-colors"
                     >
                       <span className="flex items-center gap-2">
-                        <Sliders size={14} className="text-signal-cyan" />
-                        Analyst Profile & Settings
+                        <User size={14} className="text-signal-cyan" />
+                        Analyst Profile Page
+                      </span>
+                      <ChevronRight size={14} className="text-ink-500" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowProfile(false);
+                        navigate("/app/settings");
+                      }}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-ink-200 hover:bg-base-800 hover:text-ink-100 transition-colors"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Settings size={14} className="text-signal-blue" />
+                        Application Settings
                       </span>
                       <ChevronRight size={14} className="text-ink-500" />
                     </button>
