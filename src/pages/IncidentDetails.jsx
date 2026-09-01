@@ -12,7 +12,7 @@ import { api } from "../services/api";
 export default function IncidentDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { incidents, getIncident, markInvestigating, isLoading: contextLoading } = useIncidents();
+  const { incidents, getIncident, updateStatus, markInvestigating, markResolved, isLoading: contextLoading } = useIncidents();
   const [fetchedIncident, setFetchedIncident] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -120,12 +120,49 @@ export default function IncidentDetails() {
               </p>
 
               <div className="mt-5 flex flex-wrap gap-3">
-                <button
-                  onClick={() => markInvestigating(incident.id)}
-                  className="rounded-md bg-signal-blue px-4 py-2 text-sm font-semibold text-white shadow-glow transition-opacity hover:opacity-90"
-                >
-                  Mark as Investigating
-                </button>
+                {incident.status !== "Investigating" && incident.status !== "Resolved" && (
+                  <button
+                    onClick={() => markInvestigating(incident.id)}
+                    className="rounded-md bg-signal-blue px-4 py-2 text-sm font-semibold text-white shadow-glow transition-opacity hover:opacity-90"
+                  >
+                    Mark as Investigating
+                  </button>
+                )}
+
+                {incident.status === "Investigating" && (
+                  <>
+                    <button
+                      onClick={() => markResolved(incident.id)}
+                      className="rounded-md bg-threat-low px-4 py-2 text-sm font-semibold text-base-950 transition-opacity hover:opacity-90"
+                    >
+                      Mark as Resolved
+                    </button>
+                    <button
+                      onClick={() => updateStatus(incident.id, "TRIAGED")}
+                      className="rounded-md border border-base-600 px-4 py-2 text-sm font-medium text-ink-300 transition-colors hover:bg-base-800 hover:text-ink-100"
+                    >
+                      Revert to Triaged
+                    </button>
+                  </>
+                )}
+
+                {incident.status === "Resolved" && (
+                  <>
+                    <button
+                      onClick={() => markInvestigating(incident.id)}
+                      className="rounded-md bg-signal-blue px-4 py-2 text-sm font-semibold text-white shadow-glow transition-opacity hover:opacity-90"
+                    >
+                      Reopen Investigation
+                    </button>
+                    <button
+                      onClick={() => updateStatus(incident.id, "TRIAGED")}
+                      className="rounded-md border border-base-600 px-4 py-2 text-sm font-medium text-ink-300 transition-colors hover:bg-base-800 hover:text-ink-100"
+                    >
+                      Revert to Triaged
+                    </button>
+                  </>
+                )}
+
                 {compareTarget && compareTarget.id !== incident.id && (
                   <button
                     onClick={() => {

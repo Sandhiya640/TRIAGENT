@@ -49,7 +49,19 @@ export default function IncidentRow({ incident, onSelect }) {
       </div>
 
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-ink-100">{type}</p>
+        <div className="flex items-center gap-2">
+          <p className="truncate text-sm font-semibold text-ink-100">{type}</p>
+          {incident.status === "Investigating" && (
+            <span className="rounded bg-signal-yellow/15 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-signal-yellow border border-signal-yellow/30">
+              Investigating
+            </span>
+          )}
+          {incident.status === "Resolved" && (
+            <span className="rounded bg-threat-low/15 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-threat-low border border-threat-low/30">
+              Resolved
+            </span>
+          )}
+        </div>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-ink-500">
           <span className="font-mono">{id}</span>
           <span className="text-base-500">·</span>

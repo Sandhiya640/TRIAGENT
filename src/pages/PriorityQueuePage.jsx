@@ -7,13 +7,25 @@ import { useIncidents } from "../context/IncidentsContext";
 
 export default function PriorityQueuePage() {
   const { incidents, incomingIncidents, runTriage } = useIncidents();
+  const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterLevel, setFilterLevel] = useState("ALL");
   const navigate = useNavigate();
 
+  const investigatingCount = incidents.filter((i) => i.status === "Investigating").length;
+  const triagedCount = incidents.filter((i) => i.status === "Triaged").length;
+  const resolvedCount = incidents.filter((i) => i.status === "Resolved").length;
+
   const filteredIncidents = useMemo(() => {
-    if (filterLevel === "ALL") return incidents;
-    return incidents.filter((i) => i.level === filterLevel);
-  }, [incidents, filterLevel]);
+    return incidents.filter((i) => {
+      const matchStatus =
+        filterStatus === "ALL" ||
+        (filterStatus === "INVESTIGATING" && i.status === "Investigating") ||
+        (filterStatus === "TRIAGED" && i.status === "Triaged") ||
+        (filterStatus === "RESOLVED" && i.status === "Resolved");
+      const matchLevel = filterLevel === "ALL" || i.level === filterLevel;
+      return matchStatus && matchLevel;
+    });
+  }, [incidents, filterStatus, filterLevel]);
 
   const criticalCount = incidents.filter((i) => i.level === "CRITICAL").length;
   const highCount = incidents.filter((i) => i.level === "HIGH").length;
@@ -36,8 +48,13 @@ export default function PriorityQueuePage() {
                 Triaged Priority Queue
               </h2>
               <span className="rounded-full border border-signal-blue/30 bg-signal-blue/10 px-2.5 py-0.5 font-mono text-xs font-medium text-signal-cyan">
-                {incidents.length} Ranked
+                {incidents.length} Total
               </span>
+              {investigatingCount > 0 && (
+                <span className="rounded-full border border-signal-yellow/30 bg-signal-yellow/10 px-2.5 py-0.5 font-mono text-xs font-medium text-signal-yellow">
+                  {investigatingCount} Investigating
+                </span>
+              )}
             </div>
             <p className="mt-1 text-sm text-ink-500">
               Deterministic queue order: Score (25% Sev, 20% Imp, 15% Sens, 15% Asset, 15% Conf, 10% Users) + Tie-Breakers
@@ -55,64 +72,113 @@ export default function PriorityQueuePage() {
           )}
         </div>
 
-        {/* Priority Filter Bar */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap gap-2">
+        {/* Status & Priority Filter Bar */}
+        <div className="mt-6 space-y-3">
+          {/* Status Lifecycle Tabs */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-base-600/40 pb-3">
+            <span className="text-xs font-mono text-ink-500 mr-2">Lifecycle Status:</span>
             <button
-              onClick={() => setFilterLevel("ALL")}
-              className={`rounded-lg px-3.5 py-1.5 font-mono text-xs font-medium transition-colors ${
-                filterLevel === "ALL"
+              onClick={() => setFilterStatus("ALL")}
+              className={`rounded-md px-3 py-1 font-mono text-xs font-medium transition-colors ${
+                filterStatus === "ALL"
                   ? "bg-signal-blue text-white"
-                  : "border border-base-600 bg-base-850/60 text-ink-400 hover:text-ink-100"
+                  : "bg-base-850/60 text-ink-400 border border-base-600 hover:text-ink-100"
               }`}
             >
-              ALL ({incidents.length})
+              ALL QUEUE ({incidents.length})
             </button>
             <button
-              onClick={() => setFilterLevel("CRITICAL")}
-              className={`rounded-lg px-3.5 py-1.5 font-mono text-xs font-medium transition-colors ${
-                filterLevel === "CRITICAL"
-                  ? "bg-threat-critical text-white"
-                  : "border border-base-600 bg-base-850/60 text-threat-critical/80 hover:text-threat-critical"
+              onClick={() => setFilterStatus("INVESTIGATING")}
+              className={`rounded-md px-3 py-1 font-mono text-xs font-medium transition-colors ${
+                filterStatus === "INVESTIGATING"
+                  ? "bg-signal-yellow text-base-950 font-bold"
+                  : "bg-base-850/60 text-signal-yellow/80 border border-signal-yellow/30 hover:text-signal-yellow"
               }`}
             >
-              CRITICAL ({criticalCount})
+              INVESTIGATING ({investigatingCount})
             </button>
             <button
-              onClick={() => setFilterLevel("HIGH")}
-              className={`rounded-lg px-3.5 py-1.5 font-mono text-xs font-medium transition-colors ${
-                filterLevel === "HIGH"
-                  ? "bg-threat-high text-white"
-                  : "border border-base-600 bg-base-850/60 text-threat-high/80 hover:text-threat-high"
+              onClick={() => setFilterStatus("TRIAGED")}
+              className={`rounded-md px-3 py-1 font-mono text-xs font-medium transition-colors ${
+                filterStatus === "TRIAGED"
+                  ? "bg-signal-cyan text-base-950 font-bold"
+                  : "bg-base-850/60 text-signal-cyan/80 border border-signal-blue/30 hover:text-signal-cyan"
               }`}
             >
-              HIGH ({highCount})
+              TRIAGED ({triagedCount})
             </button>
             <button
-              onClick={() => setFilterLevel("MEDIUM")}
-              className={`rounded-lg px-3.5 py-1.5 font-mono text-xs font-medium transition-colors ${
-                filterLevel === "MEDIUM"
-                  ? "bg-threat-medium text-base-950 font-semibold"
-                  : "border border-base-600 bg-base-850/60 text-threat-medium/80 hover:text-threat-medium"
+              onClick={() => setFilterStatus("RESOLVED")}
+              className={`rounded-md px-3 py-1 font-mono text-xs font-medium transition-colors ${
+                filterStatus === "RESOLVED"
+                  ? "bg-threat-low text-base-950 font-bold"
+                  : "bg-base-850/60 text-threat-low/80 border border-threat-low/30 hover:text-threat-low"
               }`}
             >
-              MEDIUM ({mediumCount})
-            </button>
-            <button
-              onClick={() => setFilterLevel("LOW")}
-              className={`rounded-lg px-3.5 py-1.5 font-mono text-xs font-medium transition-colors ${
-                filterLevel === "LOW"
-                  ? "bg-threat-low text-base-950 font-semibold"
-                  : "border border-base-600 bg-base-850/60 text-threat-low/80 hover:text-threat-low"
-              }`}
-            >
-              LOW ({lowCount})
+              RESOLVED ({resolvedCount})
             </button>
           </div>
 
-          <span className="font-mono text-xs text-ink-500">
-            Showing {filteredIncidents.length} of {incidents.length} incidents
-          </span>
+          {/* Level Filter Tabs */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-2">
+              <span className="text-xs font-mono text-ink-500 mr-2 self-center">Risk Level:</span>
+              <button
+                onClick={() => setFilterLevel("ALL")}
+                className={`rounded-lg px-3.5 py-1 font-mono text-xs font-medium transition-colors ${
+                  filterLevel === "ALL"
+                    ? "bg-base-700 text-white"
+                    : "border border-base-600 bg-base-850/60 text-ink-400 hover:text-ink-100"
+                }`}
+              >
+                ALL
+              </button>
+              <button
+                onClick={() => setFilterLevel("CRITICAL")}
+                className={`rounded-lg px-3.5 py-1 font-mono text-xs font-medium transition-colors ${
+                  filterLevel === "CRITICAL"
+                    ? "bg-threat-critical text-white"
+                    : "border border-base-600 bg-base-850/60 text-threat-critical/80 hover:text-threat-critical"
+                }`}
+              >
+                CRITICAL ({criticalCount})
+              </button>
+              <button
+                onClick={() => setFilterLevel("HIGH")}
+                className={`rounded-lg px-3.5 py-1 font-mono text-xs font-medium transition-colors ${
+                  filterLevel === "HIGH"
+                    ? "bg-threat-high text-white"
+                    : "border border-base-600 bg-base-850/60 text-threat-high/80 hover:text-threat-high"
+                }`}
+              >
+                HIGH ({highCount})
+              </button>
+              <button
+                onClick={() => setFilterLevel("MEDIUM")}
+                className={`rounded-lg px-3.5 py-1 font-mono text-xs font-medium transition-colors ${
+                  filterLevel === "MEDIUM"
+                    ? "bg-threat-medium text-base-950 font-semibold"
+                    : "border border-base-600 bg-base-850/60 text-threat-medium/80 hover:text-threat-medium"
+                }`}
+              >
+                MEDIUM ({mediumCount})
+              </button>
+              <button
+                onClick={() => setFilterLevel("LOW")}
+                className={`rounded-lg px-3.5 py-1 font-mono text-xs font-medium transition-colors ${
+                  filterLevel === "LOW"
+                    ? "bg-threat-low text-base-950 font-semibold"
+                    : "border border-base-600 bg-base-850/60 text-threat-low/80 hover:text-threat-low"
+                }`}
+              >
+                LOW ({lowCount})
+              </button>
+            </div>
+
+            <span className="font-mono text-xs text-ink-500">
+              Showing {filteredIncidents.length} of {incidents.length} incidents
+            </span>
+          </div>
         </div>
 
         {/* Priority Queue List */}

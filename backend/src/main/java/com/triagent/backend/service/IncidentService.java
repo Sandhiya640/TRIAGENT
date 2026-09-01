@@ -84,8 +84,10 @@ public class IncidentService {
                 inc.setPriorityScore(r.getScore());
                 inc.setPriorityLevel(r.getLevel());
                 inc.setTriageRank(r.getRank());
-                inc.setStatus(IncidentStatus.TRIAGED);
-                inc.setTriagedAt(LocalDateTime.now());
+                if (inc.getStatus() == IncidentStatus.AWAITING_TRIAGE) {
+                    inc.setStatus(IncidentStatus.TRIAGED);
+                    inc.setTriagedAt(LocalDateTime.now());
+                }
             }
         }
 

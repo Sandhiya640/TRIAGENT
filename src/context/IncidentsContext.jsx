@@ -111,19 +111,30 @@ export function IncidentsProvider({ children }) {
   );
 
   // Update status -> PATCH /api/incidents/{id}/status
-  const markInvestigating = useCallback(async (id) => {
+  const updateStatus = useCallback(async (id, status) => {
     try {
-      const updated = await api.updateStatus(id, "INVESTIGATING");
-      setTriagedIncidents((prev) =>
-        prev.map((inc) => (inc.id === id ? updated : inc))
-      );
-      setIncomingIncidents((prev) =>
-        prev.map((inc) => (inc.id === id ? updated : inc))
-      );
+      setError(null);
+      const updated = await api.updateStatus(id, status);
+      setTriagedIncidents((prev) => {
+        const exists = prev.some((inc) => inc.id === id);
+        if (exists) {
+          return prev.map((inc) => (inc.id === id ? updated : inc));
+        } else {
+          return [updated, ...prev];
+        }
+      });
+      // Remove from incoming if status changed from AWAITING_TRIAGE
+      setIncomingIncidents((prev) => prev.filter((inc) => inc.id !== id));
+      return updated;
     } catch (err) {
-      console.error("[TRIAGENT API] Error marking status as investigating:", err);
+      console.error(`[TRIAGENT API] Error updating status for ${id} to ${status}:`, err);
+      setError(err.message);
+      throw err;
     }
   }, []);
+
+  const markInvestigating = useCallback((id) => updateStatus(id, "INVESTIGATING"), [updateStatus]);
+  const markResolved = useCallback((id) => updateStatus(id, "RESOLVED"), [updateStatus]);
 
   const value = {
     incidents: triagedIncidents,
@@ -135,7 +146,9 @@ export function IncidentsProvider({ children }) {
     hasRunOnce,
     loadDemoIncidents,
     addIncident,
+    updateStatus,
     markInvestigating,
+    markResolved,
     isLoading,
     error,
     refreshState,

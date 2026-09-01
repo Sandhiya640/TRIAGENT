@@ -2,6 +2,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 export function formatIncident(inc) {
   if (!inc) return null;
+  const statusStr = typeof inc.status === "string" ? inc.status.toUpperCase() : "";
   return {
     ...inc,
     id: inc.id,
@@ -12,10 +13,12 @@ export function formatIncident(inc) {
     affectedUsersCount: inc.affectedUsersCount ?? 0,
     description: inc.description || "No description provided.",
     recommendedAction: inc.recommendedAction || "Review raw factor metrics and execute containment procedures.",
-    status: inc.status === "AWAITING_TRIAGE" ? "Awaiting Triage"
-          : inc.status === "TRIAGED" ? "Triaged"
-          : inc.status === "INVESTIGATING" ? "Investigating"
+    status: statusStr === "AWAITING_TRIAGE" ? "Awaiting Triage"
+          : statusStr === "TRIAGED" ? "Triaged"
+          : statusStr === "INVESTIGATING" ? "Investigating"
+          : statusStr === "RESOLVED" ? "Resolved"
           : inc.status || "Awaiting Triage",
+    rawStatus: statusStr || "AWAITING_TRIAGE",
     score: inc.score ?? 0,
     displayScore: inc.displayScore ?? Math.round(inc.score ?? 0),
     level: inc.level || "LOW",
