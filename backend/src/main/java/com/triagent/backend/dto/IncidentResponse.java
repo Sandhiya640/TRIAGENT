@@ -87,6 +87,13 @@ public class IncidentResponse {
     private java.util.List<String> playbook;
     private String urgencyIndicator;
 
+    // Automated Outcome Assessment Fields
+    private com.triagent.backend.entity.PredictedOutcome predictedOutcome;
+    private Integer predictionConfidence;
+    private String predictionExplanation;
+    private java.util.List<String> supportingIndicators;
+    private java.util.List<String> contradictingIndicators;
+
     public IncidentResponse() {
     }
 
@@ -337,5 +344,45 @@ public class IncidentResponse {
 
     public void setUrgencyIndicator(String urgencyIndicator) {
         this.urgencyIndicator = urgencyIndicator;
+    }
+
+    public com.triagent.backend.entity.PredictedOutcome getPredictedOutcome() {
+        return predictedOutcome;
+    }
+
+    public void setPredictedOutcome(com.triagent.backend.entity.PredictedOutcome predictedOutcome) {
+        this.predictedOutcome = predictedOutcome;
+    }
+
+    public Integer getPredictionConfidence() {
+        return predictionConfidence;
+    }
+
+    public void setPredictionConfidence(Integer predictionConfidence) {
+        this.predictionConfidence = predictionConfidence;
+    }
+
+    public String getPredictionExplanation() {
+        return predictionExplanation;
+    }
+
+    public void setPredictionExplanation(String predictionExplanation) {
+        this.predictionExplanation = predictionExplanation;
+    }
+
+    public java.util.List<String> getSupportingIndicators() {
+        return supportingIndicators;
+    }
+
+    public void setSupportingIndicators(java.util.List<String> supportingIndicators) {
+        this.supportingIndicators = supportingIndicators;
+    }
+
+    public java.util.List<String> getContradictingIndicators() {
+        return contradictingIndicators;
+    }
+
+    public void setContradictingIndicators(java.util.List<String> contradictingIndicators) {
+        this.contradictingIndicators = contradictingIndicators;
     }
 }

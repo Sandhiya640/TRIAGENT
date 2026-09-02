@@ -90,6 +90,23 @@ public class Incident {
     @Column(name = "resolved_at")
     private Instant resolvedAt;
 
+    // Automated Outcome Prediction Fields
+    @Enumerated(EnumType.STRING)
+    @Column(name = "predicted_outcome")
+    private PredictedOutcome predictedOutcome;
+
+    @Column(name = "prediction_confidence")
+    private Integer predictionConfidence;
+
+    @Column(name = "prediction_explanation", length = 2000)
+    private String predictionExplanation;
+
+    @Column(name = "supporting_indicators", length = 2000)
+    private String supportingIndicatorsJson;
+
+    @Column(name = "contradicting_indicators", length = 2000)
+    private String contradictingIndicatorsJson;
+
     public Incident() {
     }
 
@@ -312,5 +329,45 @@ public class Incident {
 
     public void setResolvedAt(Instant resolvedAt) {
         this.resolvedAt = resolvedAt;
+    }
+
+    public PredictedOutcome getPredictedOutcome() {
+        return predictedOutcome;
+    }
+
+    public void setPredictedOutcome(PredictedOutcome predictedOutcome) {
+        this.predictedOutcome = predictedOutcome;
+    }
+
+    public Integer getPredictionConfidence() {
+        return predictionConfidence;
+    }
+
+    public void setPredictionConfidence(Integer predictionConfidence) {
+        this.predictionConfidence = predictionConfidence;
+    }
+
+    public String getPredictionExplanation() {
+        return predictionExplanation;
+    }
+
+    public void setPredictionExplanation(String predictionExplanation) {
+        this.predictionExplanation = predictionExplanation;
+    }
+
+    public String getSupportingIndicatorsJson() {
+        return supportingIndicatorsJson;
+    }
+
+    public void setSupportingIndicatorsJson(String supportingIndicatorsJson) {
+        this.supportingIndicatorsJson = supportingIndicatorsJson;
+    }
+
+    public String getContradictingIndicatorsJson() {
+        return contradictingIndicatorsJson;
+    }
+
+    public void setContradictingIndicatorsJson(String contradictingIndicatorsJson) {
+        this.contradictingIndicatorsJson = contradictingIndicatorsJson;
     }
 }

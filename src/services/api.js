@@ -50,6 +50,11 @@ export function formatIncident(inc) {
     actualResolutionMinutes: inc.actualResolutionMinutes || null,
     playbook: inc.playbook || [],
     urgencyIndicator: inc.urgencyIndicator || "",
+    predictedOutcome: inc.predictedOutcome || "NEEDS_INVESTIGATION",
+    predictionConfidence: inc.predictionConfidence ?? 50,
+    predictionExplanation: inc.predictionExplanation || "",
+    supportingIndicators: inc.supportingIndicators || [],
+    contradictingIndicators: inc.contradictingIndicators || [],
   };
 }
 

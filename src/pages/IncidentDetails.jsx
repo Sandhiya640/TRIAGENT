@@ -12,6 +12,8 @@ import { useIncidents } from "../context/IncidentsContext";
 import { riskTags } from "../utils/priorityEngine";
 import { api } from "../services/api";
 
+import AutomatedAssessmentCard from "../components/AutomatedAssessmentCard";
+
 export default function IncidentDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -192,8 +194,8 @@ export default function IncidentDetails() {
             {/* Feature 4: Resolution & SLA Tracking Card */}
             <SlaTrackingCard incident={incident} />
 
-            {/* Feature 2: Analyst Feedback / Investigation Outcome */}
-            <AnalystFeedbackCard incident={incident} updateFeedback={updateFeedback} />
+            {/* Automated Outcome Assessment & Analyst Review */}
+            <AutomatedAssessmentCard incident={incident} updateFeedback={updateFeedback} />
           </div>
 
           {/* Right Column: Score Breakdown & Recommended Actions */}

@@ -74,6 +74,11 @@ public class IncidentService {
         Instant created = saved.getCreatedAt() != null ? saved.getCreatedAt() : Instant.now();
         saved.setResolutionDeadline(created.plus(Duration.ofMinutes(targetMins)));
 
+        com.triagent.backend.dto.OutcomeAssessmentDto assessment = priorityEngineService.evaluateOutcomePrediction(saved);
+        saved.setPredictedOutcome(assessment.getPredictedOutcome());
+        saved.setPredictionConfidence(assessment.getConfidence());
+        saved.setPredictionExplanation(assessment.getExplanation());
+
         incidentRepository.save(saved);
         return priorityEngineService.computeAndBuildResponse(saved);
     }
@@ -201,6 +206,11 @@ public class IncidentService {
 
             Instant created = incident.getCreatedAt() != null ? incident.getCreatedAt() : Instant.now();
             incident.setResolutionDeadline(created.plus(Duration.ofMinutes(targetMins)));
+
+            com.triagent.backend.dto.OutcomeAssessmentDto assessment = priorityEngineService.evaluateOutcomePrediction(incident);
+            incident.setPredictedOutcome(assessment.getPredictedOutcome());
+            incident.setPredictionConfidence(assessment.getConfidence());
+            incident.setPredictionExplanation(assessment.getExplanation());
 
             if (resp.getLevel() == com.triagent.backend.entity.PriorityLevel.CRITICAL) {
                 criticalCount++;

@@ -6,6 +6,9 @@ import com.triagent.backend.entity.Incident;
 import com.triagent.backend.entity.PriorityLevel;
 import org.springframework.stereotype.Service;
 
+import com.triagent.backend.dto.OutcomeAssessmentDto;
+import com.triagent.backend.entity.PredictedOutcome;
+import java.text.NumberFormat;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -129,7 +132,135 @@ public class PriorityEngineService {
         response.setPlaybook(getPlaybookForType(incident.getType()));
         response.setUrgencyIndicator(getUrgencyIndicator(level));
 
+        // Automated Outcome Assessment
+        OutcomeAssessmentDto assessment = evaluateOutcomePrediction(incident);
+        response.setPredictedOutcome(incident.getPredictedOutcome() != null ? incident.getPredictedOutcome() : assessment.getPredictedOutcome());
+        response.setPredictionConfidence(incident.getPredictionConfidence() != null ? incident.getPredictionConfidence() : assessment.getConfidence());
+        response.setPredictionExplanation(incident.getPredictionExplanation() != null && !incident.getPredictionExplanation().isBlank()
+                ? incident.getPredictionExplanation()
+                : assessment.getExplanation());
+        response.setSupportingIndicators(assessment.getSupportingIndicators());
+        response.setContradictingIndicators(assessment.getContradictingIndicators());
+
         return response;
+    }
+
+    public OutcomeAssessmentDto evaluateOutcomePrediction(Incident incident) {
+        if (incident == null) {
+            return new OutcomeAssessmentDto(PredictedOutcome.NEEDS_INVESTIGATION, 50,
+                    "Insufficient incident data available to compute automated prediction.", Collections.emptyList(), Collections.emptyList());
+        }
+
+        List<String> supporting = new ArrayList<>();
+        List<String> contradicting = new ArrayList<>();
+
+        int confidenceRaw = incident.getAttackConfidenceRaw();
+        int severity = incident.getSeverityRaw();
+        int impact = incident.getBusinessImpactRaw();
+        int users = incident.getAffectedUsersCount();
+        String type = incident.getType() != null ? incident.getType() : "";
+        String asset = incident.getAsset() != null ? incident.getAsset() : "";
+        String typeUpper = type.toUpperCase();
+        String assetUpper = asset.toUpperCase();
+
+        double tpPoints = 0;
+        double fpPoints = 0;
+
+        // 1. Attack Confidence
+        if (confidenceRaw >= 85) {
+            tpPoints += 35;
+            supporting.add("High attack confidence metric (" + confidenceRaw + "%) confirmed by detection engine");
+        } else if (confidenceRaw >= 70) {
+            tpPoints += 20;
+            supporting.add("Moderate-high attack confidence metric (" + confidenceRaw + "%)");
+        } else if (confidenceRaw <= 40) {
+            fpPoints += 35;
+            supporting.add("Low attack confidence metric (" + confidenceRaw + "%), suggesting noise or false trigger");
+        } else {
+            contradicting.add("Moderate attack confidence (" + confidenceRaw + "%) requires further evidence verification");
+        }
+
+        // 2. Incident Type Signature & Criticality
+        boolean isHighRiskType = typeUpper.contains("RANSOMWARE") || typeUpper.contains("EXFILTRATION") ||
+                typeUpper.contains("PRIVILEGE") || typeUpper.contains("ZERO-DAY") ||
+                typeUpper.contains("MALWARE") || typeUpper.contains("TROJAN") ||
+                typeUpper.contains("STEALER") || typeUpper.contains("INSIDER");
+
+        boolean isNoiseType = typeUpper.contains("PORT SCAN") || typeUpper.contains("FAILED LOGIN") ||
+                typeUpper.contains("MULTICAST") || typeUpper.contains("DNS") ||
+                typeUpper.contains("SPAM") || typeUpper.contains("GUEST");
+
+        if (isHighRiskType) {
+            tpPoints += 25;
+            supporting.add("High-impact attack pattern detected (" + type + ")");
+        } else if (isNoiseType) {
+            fpPoints += 25;
+            supporting.add("Alert classification (" + type + ") frequently matches benign scanner activity");
+        }
+
+        // 3. Severity & Business Impact
+        if (severity >= 8 && impact >= 8) {
+            tpPoints += 20;
+            supporting.add("High severity (" + severity + "/10) compounded by major business impact (" + impact + "/10)");
+        } else if (severity <= 3 && impact <= 3) {
+            fpPoints += 20;
+            supporting.add("Low severity (" + severity + "/10) and minimal business impact (" + impact + "/10)");
+        } else if (severity >= 8 && confidenceRaw <= 40) {
+            contradicting.add("High threat severity (" + severity + "/10) conflicts with low attack confidence (" + confidenceRaw + "%)");
+        }
+
+        // 4. Asset Criticality & Environment
+        boolean isProdAsset = assetUpper.contains("PROD") || assetUpper.contains("CUSTOMER") ||
+                assetUpper.contains("PII") || assetUpper.contains("DC") ||
+                assetUpper.contains("FIN") || assetUpper.contains("PAYROLL") ||
+                assetUpper.contains("CORE") || assetUpper.contains("SSO");
+
+        boolean isNonProdAsset = assetUpper.contains("STAGING") || assetUpper.contains("TEST") ||
+                assetUpper.contains("SANDBOX") || assetUpper.contains("GUEST") ||
+                assetUpper.contains("DEMO") || assetUpper.contains("DEV");
+
+        if (isProdAsset) {
+            tpPoints += 15;
+            supporting.add("Target asset (" + asset + ") is classified as production core infrastructure");
+        } else if (isNonProdAsset) {
+            fpPoints += 20;
+            supporting.add("Target asset (" + asset + ") is an isolated test/staging environment");
+        }
+
+        // 5. Affected Users Footprint
+        if (users >= 500) {
+            tpPoints += 10;
+            supporting.add("Substantial user impact footprint (" + NumberFormat.getInstance().format(users) + " affected users)");
+        } else if (users == 0 && isNoiseType) {
+            fpPoints += 10;
+            supporting.add("Zero affected user accounts recorded");
+        } else if (isProdAsset && users == 0) {
+            contradicting.add("Critical production asset targeted but zero affected users recorded");
+        }
+
+        PredictedOutcome outcome;
+        int confidence;
+        String explanation;
+
+        double diff = tpPoints - fpPoints;
+
+        if (diff >= 25 && tpPoints >= 45) {
+            outcome = PredictedOutcome.LIKELY_TRUE_POSITIVE;
+            confidence = (int) Math.min(98, Math.max(70, Math.round(65 + (tpPoints * 0.35))));
+            explanation = String.format("TRIAGENT automated assessment classifies this incident as LIKELY TRUE POSITIVE with %d%% confidence due to high attack confidence (%d%%), targeted asset criticality (%s), and high-risk threat signature.",
+                    confidence, confidenceRaw, asset);
+        } else if (diff <= -25 || (fpPoints >= 45 && tpPoints < 35)) {
+            outcome = PredictedOutcome.LIKELY_FALSE_POSITIVE;
+            confidence = (int) Math.min(95, Math.max(65, Math.round(60 + (fpPoints * 0.35))));
+            explanation = String.format("TRIAGENT automated assessment classifies this incident as LIKELY FALSE POSITIVE with %d%% confidence due to low attack confidence (%d%%), low business impact, or non-production environment signature.",
+                    confidence, confidenceRaw);
+        } else {
+            outcome = PredictedOutcome.NEEDS_INVESTIGATION;
+            confidence = (int) Math.min(68, Math.max(45, Math.round(50 + Math.abs(diff) * 0.3)));
+            explanation = "The available evidence contains conflicting indicators and is insufficient to confidently classify the alert as a true or false positive. Further manual analyst investigation is required.";
+        }
+
+        return new OutcomeAssessmentDto(outcome, confidence, explanation, supporting, contradicting);
     }
 
     public long getSlaTargetMinutes(PriorityLevel level) {
