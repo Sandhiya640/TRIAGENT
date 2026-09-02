@@ -197,4 +197,21 @@ public class IncidentController {
             return ResponseEntity.badRequest().build();
         }
     }
+
+    @PatchMapping("/{id}/feedback")
+    @Operation(summary = "Update incident feedback / investigation outcome", description = "Record analyst feedback outcome (TRUE_POSITIVE, FALSE_POSITIVE, NEEDS_INVESTIGATION) and optional reason without altering priority score.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Feedback updated successfully",
+                    content = @Content(schema = @Schema(implementation = IncidentResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Incident ID not found")
+    })
+    public ResponseEntity<IncidentResponse> updateFeedback(
+            @Parameter(description = "Incident ID", example = "INC-2401") @PathVariable String id,
+            @RequestBody FeedbackRequest req) {
+        IncidentResponse resp = incidentService.updateFeedback(id, req);
+        if (resp == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(resp);
+    }
 }

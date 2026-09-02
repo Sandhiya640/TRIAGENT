@@ -153,6 +153,21 @@ export function IncidentsProvider({ children }) {
   const markInvestigating = useCallback((id) => updateStatus(id, "INVESTIGATING"), [updateStatus]);
   const markResolved = useCallback((id) => updateStatus(id, "RESOLVED"), [updateStatus]);
 
+  // Update feedback -> PATCH /api/incidents/{id}/feedback
+  const updateFeedback = useCallback(async (id, feedbackData) => {
+    try {
+      setError(null);
+      const updated = await api.updateFeedback(id, feedbackData);
+      setTriagedIncidents((prev) => prev.map((inc) => (inc.id === id ? updated : inc)));
+      setIncomingIncidents((prev) => prev.map((inc) => (inc.id === id ? updated : inc)));
+      return updated;
+    } catch (err) {
+      console.error(`[TRIAGENT API] Error updating feedback for ${id}:`, err);
+      setError(err.message);
+      throw err;
+    }
+  }, []);
+
   const value = {
     incidents: triagedIncidents,
     incomingIncidents,
@@ -165,6 +180,7 @@ export function IncidentsProvider({ children }) {
     addIncident,
     bulkIngestIncidents,
     updateStatus,
+    updateFeedback,
     markInvestigating,
     markResolved,
     isLoading,

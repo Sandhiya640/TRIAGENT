@@ -63,6 +63,18 @@ public class IncidentService {
         );
 
         Incident saved = incidentRepository.save(incident);
+        IncidentResponse resp = priorityEngineService.computeAndBuildResponse(saved);
+
+        saved.setPriorityScore(resp.getScore());
+        saved.setPriorityLevel(resp.getLevel());
+
+        long targetMins = priorityEngineService.getSlaTargetMinutes(resp.getLevel());
+        saved.setResolutionTargetMinutes(targetMins);
+
+        Instant created = saved.getCreatedAt() != null ? saved.getCreatedAt() : Instant.now();
+        saved.setResolutionDeadline(created.plus(Duration.ofMinutes(targetMins)));
+
+        incidentRepository.save(saved);
         return priorityEngineService.computeAndBuildResponse(saved);
     }
 
@@ -183,6 +195,12 @@ public class IncidentService {
             IncidentResponse resp = priorityEngineService.computeAndBuildResponse(incident);
             incident.setPriorityScore(resp.getScore());
             incident.setPriorityLevel(resp.getLevel());
+
+            long targetMins = priorityEngineService.getSlaTargetMinutes(resp.getLevel());
+            incident.setResolutionTargetMinutes(targetMins);
+
+            Instant created = incident.getCreatedAt() != null ? incident.getCreatedAt() : Instant.now();
+            incident.setResolutionDeadline(created.plus(Duration.ofMinutes(targetMins)));
 
             if (resp.getLevel() == com.triagent.backend.entity.PriorityLevel.CRITICAL) {
                 criticalCount++;
@@ -321,9 +339,40 @@ public class IncidentService {
         if (opt.isPresent()) {
             Incident inc = opt.get();
             inc.setStatus(status);
+            if (status == IncidentStatus.RESOLVED) {
+                if (inc.getResolvedAt() == null) {
+                    inc.setResolvedAt(Instant.now());
+                }
+            } else {
+                inc.setResolvedAt(null);
+            }
             incidentRepository.save(inc);
             return getIncidentDetails(id);
         }
         return null;
+    }
+
+    @Transactional
+    public IncidentResponse updateFeedback(String id, FeedbackRequest req) {
+        Optional<Incident> opt = incidentRepository.findById(id);
+        if (opt.isEmpty()) {
+            return null;
+        }
+        Incident inc = opt.get();
+        if (req != null) {
+            if (req.getInvestigationOutcome() != null && !req.getInvestigationOutcome().trim().isEmpty()) {
+                try {
+                    com.triagent.backend.entity.InvestigationOutcome outcome = com.triagent.backend.entity.InvestigationOutcome.valueOf(req.getInvestigationOutcome().trim().toUpperCase());
+                    inc.setInvestigationOutcome(outcome);
+                } catch (Exception ignored) {
+                }
+            }
+            if (req.getFeedbackReason() != null) {
+                inc.setFeedbackReason(req.getFeedbackReason().trim());
+            }
+            inc.setReviewedAt(Instant.now());
+            incidentRepository.save(inc);
+        }
+        return getIncidentDetails(id);
     }
 }

@@ -70,6 +70,23 @@ public class IncidentResponse {
     @Schema(description = "Deterministic plain-language explanation of triage decision")
     private String explanation;
 
+    // Analyst Feedback / Investigation Outcome
+    private com.triagent.backend.entity.InvestigationOutcome investigationOutcome;
+    private String feedbackReason;
+    private Instant reviewedAt;
+
+    // SLA Tracking & Metrics
+    private Instant createdAt;
+    private Long resolutionTargetMinutes;
+    private Instant resolutionDeadline;
+    private Instant resolvedAt;
+    private String slaStatus;
+    private Long actualResolutionMinutes;
+
+    // Response Playbook & Urgency
+    private java.util.List<String> playbook;
+    private String urgencyIndicator;
+
     public IncidentResponse() {
     }
 
@@ -232,5 +249,93 @@ public class IncidentResponse {
 
     public void setExplanation(String explanation) {
         this.explanation = explanation;
+    }
+
+    public com.triagent.backend.entity.InvestigationOutcome getInvestigationOutcome() {
+        return investigationOutcome;
+    }
+
+    public void setInvestigationOutcome(com.triagent.backend.entity.InvestigationOutcome investigationOutcome) {
+        this.investigationOutcome = investigationOutcome;
+    }
+
+    public String getFeedbackReason() {
+        return feedbackReason;
+    }
+
+    public void setFeedbackReason(String feedbackReason) {
+        this.feedbackReason = feedbackReason;
+    }
+
+    public Instant getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(Instant reviewedAt) {
+        this.reviewedAt = reviewedAt;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Long getResolutionTargetMinutes() {
+        return resolutionTargetMinutes;
+    }
+
+    public void setResolutionTargetMinutes(Long resolutionTargetMinutes) {
+        this.resolutionTargetMinutes = resolutionTargetMinutes;
+    }
+
+    public Instant getResolutionDeadline() {
+        return resolutionDeadline;
+    }
+
+    public void setResolutionDeadline(Instant resolutionDeadline) {
+        this.resolutionDeadline = resolutionDeadline;
+    }
+
+    public Instant getResolvedAt() {
+        return resolvedAt;
+    }
+
+    public void setResolvedAt(Instant resolvedAt) {
+        this.resolvedAt = resolvedAt;
+    }
+
+    public String getSlaStatus() {
+        return slaStatus;
+    }
+
+    public void setSlaStatus(String slaStatus) {
+        this.slaStatus = slaStatus;
+    }
+
+    public Long getActualResolutionMinutes() {
+        return actualResolutionMinutes;
+    }
+
+    public void setActualResolutionMinutes(Long actualResolutionMinutes) {
+        this.actualResolutionMinutes = actualResolutionMinutes;
+    }
+
+    public java.util.List<String> getPlaybook() {
+        return playbook;
+    }
+
+    public void setPlaybook(java.util.List<String> playbook) {
+        this.playbook = playbook;
+    }
+
+    public String getUrgencyIndicator() {
+        return urgencyIndicator;
+    }
+
+    public void setUrgencyIndicator(String urgencyIndicator) {
+        this.urgencyIndicator = urgencyIndicator;
     }
 }

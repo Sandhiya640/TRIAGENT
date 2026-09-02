@@ -6,6 +6,7 @@ import com.triagent.backend.entity.Incident;
 import com.triagent.backend.entity.PriorityLevel;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -77,7 +78,8 @@ public class PriorityEngineService {
                 contribAssetImportance + contribAttackConfidence + contribAffectedUsers);
 
         response.setScore(totalScore);
-        response.setLevel(calculatePriorityLevel(totalScore));
+        PriorityLevel level = calculatePriorityLevel(totalScore);
+        response.setLevel(level);
         response.setRank(incident.getTriageRank());
 
         Map<String, FactorContributionDto> contributions = new LinkedHashMap<>();
@@ -91,7 +93,183 @@ public class PriorityEngineService {
         response.setContributions(contributions);
         response.setExplanation(explainRanking(response));
 
+        // Analyst Feedback / Outcome
+        response.setInvestigationOutcome(incident.getInvestigationOutcome());
+        response.setFeedbackReason(incident.getFeedbackReason());
+        response.setReviewedAt(incident.getReviewedAt());
+
+        // SLA Tracking & Metrics
+        Instant created = incident.getCreatedAt() != null ? incident.getCreatedAt() : Instant.now();
+        response.setCreatedAt(created);
+
+        long targetMins = incident.getResolutionTargetMinutes() != null
+                ? incident.getResolutionTargetMinutes()
+                : getSlaTargetMinutes(level);
+        response.setResolutionTargetMinutes(targetMins);
+
+        Instant deadline = incident.getResolutionDeadline() != null
+                ? incident.getResolutionDeadline()
+                : created.plus(java.time.Duration.ofMinutes(targetMins));
+        response.setResolutionDeadline(deadline);
+
+        Instant resolved = incident.getResolvedAt();
+        response.setResolvedAt(resolved);
+
+        String slaStatus = calculateSlaStatus(created, deadline, resolved);
+        response.setSlaStatus(slaStatus);
+
+        if (resolved != null) {
+            long actualMins = Math.max(1, java.time.Duration.between(created, resolved).toMinutes());
+            response.setActualResolutionMinutes(actualMins);
+        } else {
+            response.setActualResolutionMinutes(null);
+        }
+
+        // Response Recommendations & Urgency
+        response.setPlaybook(getPlaybookForType(incident.getType()));
+        response.setUrgencyIndicator(getUrgencyIndicator(level));
+
         return response;
+    }
+
+    public long getSlaTargetMinutes(PriorityLevel level) {
+        if (level == PriorityLevel.CRITICAL) return 60L;       // 1 hour
+        if (level == PriorityLevel.HIGH) return 240L;         // 4 hours
+        if (level == PriorityLevel.MEDIUM) return 1440L;      // 24 hours
+        return 4320L;                                         // 72 hours
+    }
+
+    public String calculateSlaStatus(Instant createdAt, Instant deadline, Instant resolvedAt) {
+        if (resolvedAt != null) {
+            if (deadline != null && resolvedAt.isAfter(deadline)) {
+                return "SLA_BREACHED";
+            }
+            return "RESOLVED_WITHIN_SLA";
+        }
+        if (deadline == null) return "ON_TRACK";
+        Instant now = Instant.now();
+        if (now.isAfter(deadline)) {
+            return "BREACHED";
+        }
+        Instant start = createdAt != null ? createdAt : now.minusSeconds(60);
+        long totalSeconds = Math.max(1, java.time.Duration.between(start, deadline).getSeconds());
+        long elapsedSeconds = Math.max(0, java.time.Duration.between(start, now).getSeconds());
+        double fraction = (double) elapsedSeconds / totalSeconds;
+        if (fraction >= 0.75) {
+            return "AT_RISK";
+        }
+        return "ON_TRACK";
+    }
+
+    public List<String> getPlaybookForType(String type) {
+        if (type == null) return getGenericPlaybook();
+        String normalized = type.toUpperCase().replace(" ", "_");
+        if (normalized.contains("RANSOMWARE")) {
+            return Arrays.asList(
+                    "1. Isolate the affected asset from the network.",
+                    "2. Preserve forensic evidence.",
+                    "3. Disable potentially compromised accounts.",
+                    "4. Check for lateral movement.",
+                    "5. Escalate to the incident response team.",
+                    "6. Verify backup availability and integrity."
+            );
+        } else if (normalized.contains("PHISHING")) {
+            return Arrays.asList(
+                    "1. Quarantine the malicious message.",
+                    "2. Block the malicious sender or domain.",
+                    "3. Identify affected users.",
+                    "4. Check for credential compromise.",
+                    "5. Reset credentials when compromise is suspected.",
+                    "6. Search for similar phishing messages."
+            );
+        } else if (normalized.contains("MALWARE") || normalized.contains("TROJAN") || normalized.contains("STEALER")) {
+            return Arrays.asList(
+                    "1. Isolate the affected endpoint.",
+                    "2. Run a full endpoint security scan.",
+                    "3. Preserve relevant evidence.",
+                    "4. Identify other potentially affected systems.",
+                    "5. Remove or contain malicious artifacts.",
+                    "6. Monitor for persistence or lateral movement."
+            );
+        } else if (normalized.contains("EXFILTRATION") || normalized.contains("DATA_LEAK")) {
+            return Arrays.asList(
+                    "1. Investigate the outbound transfer.",
+                    "2. Preserve relevant network and system logs.",
+                    "3. Identify the source and destination.",
+                    "4. Determine what data may have been exposed.",
+                    "5. Restrict suspicious transfers when appropriate.",
+                    "6. Escalate according to incident response procedures."
+            );
+        } else if (normalized.contains("SUSPICIOUS_LOGIN") || normalized.contains("LOGIN") || normalized.contains("CREDENTIAL")) {
+            return Arrays.asList(
+                    "1. Review authentication and login history.",
+                    "2. Verify whether the activity was legitimate.",
+                    "3. Review the source location or IP.",
+                    "4. Reset credentials if compromise is suspected.",
+                    "5. Review MFA status.",
+                    "6. Monitor for additional suspicious activity."
+            );
+        } else if (normalized.contains("DDOS") || normalized.contains("FLOOD")) {
+            return Arrays.asList(
+                    "1. Analyze attack traffic.",
+                    "2. Activate available DDoS mitigation controls.",
+                    "3. Monitor service availability.",
+                    "4. Rate-limit suspicious traffic where appropriate.",
+                    "5. Preserve traffic and infrastructure logs.",
+                    "6. Escalate if critical services are unavailable."
+            );
+        } else if (normalized.contains("SQL_INJECTION") || normalized.contains("SQL")) {
+            return Arrays.asList(
+                    "1. Preserve relevant application and database logs.",
+                    "2. Investigate the vulnerable request or input.",
+                    "3. Block or mitigate malicious traffic where appropriate.",
+                    "4. Check for database compromise.",
+                    "5. Review affected application security controls.",
+                    "6. Verify the application is patched."
+            );
+        } else if (normalized.contains("BRUTE_FORCE") || normalized.contains("STUFFING")) {
+            return Arrays.asList(
+                    "1. Review repeated authentication attempts.",
+                    "2. Identify targeted accounts.",
+                    "3. Check whether any login attempts succeeded.",
+                    "4. Apply rate limiting or account protection controls.",
+                    "5. Reset compromised credentials if necessary.",
+                    "6. Monitor for additional attempts."
+            );
+        } else if (normalized.contains("UNAUTHORIZED_ACCESS") || normalized.contains("INSIDER") || normalized.contains("PRIVILEGE")) {
+            return Arrays.asList(
+                    "1. Verify whether the access was authorized.",
+                    "2. Review affected accounts and resources.",
+                    "3. Preserve access logs.",
+                    "4. Revoke unauthorized access if appropriate.",
+                    "5. Investigate potential data exposure.",
+                    "6. Monitor for continued suspicious activity."
+            );
+        }
+        return getGenericPlaybook();
+    }
+
+    private List<String> getGenericPlaybook() {
+        return Arrays.asList(
+                "1. Triage raw alert data and verify scope.",
+                "2. Preserve volatile forensic evidence and logs.",
+                "3. Assess business impact and system criticalities.",
+                "4. Implement temporary network/system containment.",
+                "5. Remediate root vulnerability and revoke access.",
+                "6. Conduct post-incident verification and monitoring."
+        );
+    }
+
+    public String getUrgencyIndicator(PriorityLevel level) {
+        if (level == PriorityLevel.CRITICAL) {
+            return "Immediate containment and escalation recommended.";
+        } else if (level == PriorityLevel.HIGH) {
+            return "High-priority response required. Initiate containment playbooks promptly.";
+        } else if (level == PriorityLevel.MEDIUM) {
+            return "Standard investigation and containment procedures.";
+        } else {
+            return "Continue investigation and monitor activity.";
+        }
     }
 
     public List<IncidentResponse> rankIncidents(List<Incident> incidents) {

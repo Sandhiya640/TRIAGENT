@@ -69,6 +69,27 @@ public class Incident {
     @Column(name = "triaged_at")
     private Instant triagedAt;
 
+    // Analyst Feedback / Investigation Outcome
+    @Enumerated(EnumType.STRING)
+    @Column(name = "investigation_outcome")
+    private InvestigationOutcome investigationOutcome;
+
+    @Column(name = "feedback_reason")
+    private String feedbackReason;
+
+    @Column(name = "reviewed_at")
+    private Instant reviewedAt;
+
+    // SLA Tracking Fields
+    @Column(name = "resolution_target_minutes")
+    private Long resolutionTargetMinutes;
+
+    @Column(name = "resolution_deadline")
+    private Instant resolutionDeadline;
+
+    @Column(name = "resolved_at")
+    private Instant resolvedAt;
+
     public Incident() {
     }
 
@@ -243,5 +264,53 @@ public class Incident {
 
     public void setTriagedAt(Instant triagedAt) {
         this.triagedAt = triagedAt;
+    }
+
+    public InvestigationOutcome getInvestigationOutcome() {
+        return investigationOutcome;
+    }
+
+    public void setInvestigationOutcome(InvestigationOutcome investigationOutcome) {
+        this.investigationOutcome = investigationOutcome;
+    }
+
+    public String getFeedbackReason() {
+        return feedbackReason;
+    }
+
+    public void setFeedbackReason(String feedbackReason) {
+        this.feedbackReason = feedbackReason;
+    }
+
+    public Instant getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(Instant reviewedAt) {
+        this.reviewedAt = reviewedAt;
+    }
+
+    public Long getResolutionTargetMinutes() {
+        return resolutionTargetMinutes;
+    }
+
+    public void setResolutionTargetMinutes(Long resolutionTargetMinutes) {
+        this.resolutionTargetMinutes = resolutionTargetMinutes;
+    }
+
+    public Instant getResolutionDeadline() {
+        return resolutionDeadline;
+    }
+
+    public void setResolutionDeadline(Instant resolutionDeadline) {
+        this.resolutionDeadline = resolutionDeadline;
+    }
+
+    public Instant getResolvedAt() {
+        return resolvedAt;
+    }
+
+    public void setResolvedAt(Instant resolvedAt) {
+        this.resolvedAt = resolvedAt;
     }
 }

@@ -39,6 +39,17 @@ export function formatIncident(inc) {
     },
     contributions: inc.contributions || {},
     explanation: inc.explanation || "",
+    investigationOutcome: inc.investigationOutcome || null,
+    feedbackReason: inc.feedbackReason || "",
+    reviewedAt: inc.reviewedAt || null,
+    createdAt: inc.createdAt || inc.detectedAt,
+    resolutionTargetMinutes: inc.resolutionTargetMinutes || (inc.level === "CRITICAL" ? 60 : inc.level === "HIGH" ? 240 : inc.level === "MEDIUM" ? 1440 : 4320),
+    resolutionDeadline: inc.resolutionDeadline || null,
+    resolvedAt: inc.resolvedAt || null,
+    slaStatus: inc.slaStatus || "ON_TRACK",
+    actualResolutionMinutes: inc.actualResolutionMinutes || null,
+    playbook: inc.playbook || [],
+    urgencyIndicator: inc.urgencyIndicator || "",
   };
 }
 
@@ -122,6 +133,16 @@ export const api = {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
+    }).then(handleResponse);
+
+    return formatIncident(data);
+  },
+
+  async updateFeedback(id, feedbackData) {
+    const data = await fetch(`${API_BASE_URL}/incidents/${id}/feedback`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(feedbackData),
     }).then(handleResponse);
 
     return formatIncident(data);

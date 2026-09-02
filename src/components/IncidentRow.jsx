@@ -56,8 +56,28 @@ export default function IncidentRow({ incident, onSelect }) {
       </div>
 
       <div className="min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <p className="truncate text-sm font-semibold text-ink-100">{type}</p>
+          {incident.slaStatus === "AT_RISK" && (
+            <span className="rounded bg-signal-orange/15 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-signal-orange border border-signal-orange/30 animate-pulse">
+              SLA AT RISK
+            </span>
+          )}
+          {incident.slaStatus === "BREACHED" && (
+            <span className="rounded bg-signal-red/15 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-signal-red border border-signal-red/30">
+              SLA BREACHED
+            </span>
+          )}
+          {incident.investigationOutcome === "FALSE_POSITIVE" && (
+            <span className="rounded bg-signal-orange/10 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase text-signal-orange border border-signal-orange/20">
+              FALSE POSITIVE
+            </span>
+          )}
+          {incident.investigationOutcome === "TRUE_POSITIVE" && (
+            <span className="rounded bg-signal-green/10 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase text-signal-green border border-signal-green/20">
+              TRUE POSITIVE
+            </span>
+          )}
           {incident.status === "Investigating" && (
             <span className="rounded bg-signal-yellow/15 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-signal-yellow border border-signal-yellow/30">
               Investigating
