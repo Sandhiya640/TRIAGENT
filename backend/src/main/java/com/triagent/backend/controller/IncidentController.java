@@ -20,7 +20,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/incidents")
-@CrossOrigin(originPatterns = "*")
 @Tag(name = "Cyber Incident Prioritization APIs", description = "Endpoints for loading, manual creation, batch triage scoring, priority queue retrieval, factor breakdown, and explainable comparisons.")
 public class IncidentController {
 

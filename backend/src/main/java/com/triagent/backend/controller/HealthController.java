@@ -17,7 +17,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/health")
-@CrossOrigin(originPatterns = "*")
 @Tag(name = "Health Check API", description = "Unauthenticated health check endpoint for monitoring uptime and service availability.")
 public class HealthController {
 
