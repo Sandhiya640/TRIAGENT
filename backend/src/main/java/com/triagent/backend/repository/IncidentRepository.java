@@ -11,4 +11,7 @@ import java.util.List;
 public interface IncidentRepository extends JpaRepository<Incident, String> {
     List<Incident> findByStatus(IncidentStatus status);
     List<Incident> findByStatusNot(IncidentStatus status);
+
+    @org.springframework.data.jpa.repository.Query("SELECT i.id FROM Incident i")
+    List<String> findAllIds();
 }

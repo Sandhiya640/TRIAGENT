@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, Play, RefreshCw, AlertCircle, Clock, CheckCircle2, ShieldAlert, ArrowRight } from "lucide-react";
+import { Plus, Play, RefreshCw, AlertCircle, Clock, CheckCircle2, ShieldAlert, ArrowRight, Upload, Zap, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Topbar from "../components/Topbar";
 import TriageAnimation from "../components/TriageAnimation";
 import AddIncidentModal from "../components/AddIncidentModal";
+import IngestAlertsModal from "../components/IngestAlertsModal";
 import { useIncidents } from "../context/IncidentsContext";
+import { generateAlerts } from "../utils/alertGenerator";
 
 export default function IncidentsPage() {
   const {
@@ -16,13 +18,32 @@ export default function IncidentsPage() {
     finishTriage,
     addIncident,
     loadDemoIncidents,
+    bulkIngestIncidents,
   } = useIncidents();
+
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showIngestModal, setShowIngestModal] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationSummary, setSimulationSummary] = useState(null);
   const navigate = useNavigate();
 
   const handleAdd = (form) => {
     addIncident(form);
     setShowAddModal(false);
+  };
+
+  const handleSimulate100 = async () => {
+    setIsSimulating(true);
+    setSimulationSummary(null);
+    try {
+      const generated = generateAlerts(100);
+      const res = await bulkIngestIncidents(generated);
+      setSimulationSummary(res);
+    } catch (err) {
+      console.error("Simulation error:", err);
+    } finally {
+      setIsSimulating(false);
+    }
   };
 
   return (
@@ -33,6 +54,59 @@ export default function IncidentsPage() {
       />
 
       <div className="flex-1 px-6 py-6 sm:px-8 sm:py-8">
+        {/* Simulation / Ingestion Success Summary Banner */}
+        {simulationSummary && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 rounded-xl border border-signal-cyan/40 bg-signal-cyan/10 p-5 backdrop-blur-sm"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-signal-cyan/20 text-signal-cyan">
+                  <CheckCircle2 size={22} />
+                </div>
+                <div>
+                  <h3 className="font-display text-base font-semibold text-ink-100">
+                    {simulationSummary.createdCount} alerts ingested successfully
+                  </h3>
+                  <p className="text-xs text-ink-400 mt-0.5">
+                    Batch ingestion complete. {simulationSummary.totalProcessed} records processed into persistent SQLite database.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSimulationSummary(null)}
+                className="rounded-lg p-1 text-ink-500 hover:bg-base-800 hover:text-ink-100 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Breakdown Cards */}
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 font-mono text-xs">
+              <div className="rounded-lg border border-signal-red/30 bg-base-900/60 p-2.5 text-center">
+                <span className="text-signal-red font-semibold">Critical: {simulationSummary.criticalCount || 0}</span>
+              </div>
+              <div className="rounded-lg border border-signal-orange/30 bg-base-900/60 p-2.5 text-center">
+                <span className="text-signal-orange font-semibold">High: {simulationSummary.highCount || 0}</span>
+              </div>
+              <div className="rounded-lg border border-signal-yellow/30 bg-base-900/60 p-2.5 text-center">
+                <span className="text-signal-yellow font-semibold">Medium: {simulationSummary.mediumCount || 0}</span>
+              </div>
+              <div className="rounded-lg border border-base-600 bg-base-900/60 p-2.5 text-center">
+                <span className="text-ink-300 font-semibold">Low: {simulationSummary.lowCount || 0}</span>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between text-[11px] font-mono text-ink-400 border-t border-signal-cyan/20 pt-2.5">
+              <span>Created: <strong className="text-signal-cyan">{simulationSummary.createdCount}</strong></span>
+              <span>Skipped (Duplicates): <strong className="text-signal-yellow">{simulationSummary.skippedCount}</strong></span>
+              <span>Failed: <strong className="text-signal-red">{simulationSummary.failedCount}</strong></span>
+            </div>
+          </motion.div>
+        )}
+
         {/* Top Header Actions */}
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-base-600/60 bg-base-850/40 p-5 sm:p-6">
           <div>
@@ -51,23 +125,43 @@ export default function IncidentsPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={loadDemoIncidents}
-              className="flex items-center gap-1.5 rounded-md border border-base-600 px-3.5 py-2 text-sm font-medium text-ink-300 transition-colors hover:bg-base-800 hover:text-ink-100"
+              onClick={handleSimulate100}
+              disabled={isSimulating}
+              className="flex items-center gap-1.5 rounded-md border border-signal-cyan/40 bg-signal-cyan/10 px-3.5 py-2 text-xs font-semibold text-signal-cyan hover:bg-signal-cyan/20 transition-colors disabled:opacity-40"
             >
-              <RefreshCw size={14} />
-              Load Demo Incidents
+              {isSimulating ? (
+                <>
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-signal-cyan border-t-transparent" />
+                  Simulating...
+                </>
+              ) : (
+                <>
+                  <Zap size={14} />
+                  Simulate 100 Alerts
+                </>
+              )}
             </button>
+
+            <button
+              onClick={() => setShowIngestModal(true)}
+              className="flex items-center gap-1.5 rounded-md border border-base-600 px-3.5 py-2 text-xs font-medium text-ink-300 transition-colors hover:bg-base-800 hover:text-ink-100"
+            >
+              <Upload size={14} />
+              Ingest Alerts
+            </button>
+
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 rounded-md border border-base-600 px-3.5 py-2 text-sm font-medium text-ink-300 transition-colors hover:bg-base-800 hover:text-ink-100"
+              className="flex items-center gap-1.5 rounded-md border border-base-600 px-3.5 py-2 text-xs font-medium text-ink-300 transition-colors hover:bg-base-800 hover:text-ink-100"
             >
-              <Plus size={15} strokeWidth={2.25} />
-              Add Incident Manually
+              <Plus size={14} strokeWidth={2.25} />
+              Add Incident
             </button>
+
             <button
               onClick={runTriage}
               disabled={isTriaging || incomingIncidents.length === 0}
-              className="flex items-center gap-2 rounded-md bg-signal-blue px-4 py-2 text-sm font-semibold text-white shadow-glow transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex items-center gap-2 rounded-md bg-signal-blue px-4 py-2 text-xs font-semibold text-white shadow-glow transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Play size={14} strokeWidth={2.5} fill="currentColor" />
               RUN TRIAGE
@@ -145,11 +239,19 @@ export default function IncidentsPage() {
               </p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <button
-                  onClick={loadDemoIncidents}
+                  onClick={handleSimulate100}
+                  disabled={isSimulating}
+                  className="flex items-center gap-1.5 rounded-md border border-signal-cyan/40 bg-signal-cyan/10 px-4 py-2 text-xs font-semibold text-signal-cyan hover:bg-signal-cyan/20 transition-colors"
+                >
+                  <Zap size={14} />
+                  Simulate 100 Alerts
+                </button>
+                <button
+                  onClick={() => setShowIngestModal(true)}
                   className="flex items-center gap-1.5 rounded-md border border-base-600 bg-base-800 px-4 py-2 text-xs font-semibold text-ink-100 hover:bg-base-700 transition-colors"
                 >
-                  <RefreshCw size={14} />
-                  Load Demo Incidents
+                  <Upload size={14} />
+                  Ingest Alerts
                 </button>
                 <button
                   onClick={() => navigate("/app/priority-queue")}
@@ -164,7 +266,7 @@ export default function IncidentsPage() {
         </div>
       </div>
 
-      {/* Triage Animation & Add Modal */}
+      {/* Triage Animation & Modals */}
       <AnimatePresence>
         {isTriaging && (
           <TriageAnimation
@@ -177,6 +279,18 @@ export default function IncidentsPage() {
       <AnimatePresence>
         {showAddModal && (
           <AddIncidentModal onClose={() => setShowAddModal(false)} onSubmit={handleAdd} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showIngestModal && (
+          <IngestAlertsModal
+            onClose={() => setShowIngestModal(false)}
+            bulkIngestIncidents={bulkIngestIncidents}
+            onIngestSuccess={(summary) => {
+              setSimulationSummary(summary);
+            }}
+          />
         )}
       </AnimatePresence>
     </>

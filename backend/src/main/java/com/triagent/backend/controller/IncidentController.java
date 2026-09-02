@@ -71,6 +71,16 @@ public class IncidentController {
         return ResponseEntity.ok(incidentService.createIncident(req));
     }
 
+    @PostMapping("/bulk")
+    @Operation(summary = "Automated bulk alert ingestion", description = "Receives multiple cyber alerts (100+ items) in one request array, validates input, performs duplicate detection, calculates priority score automatically using existing formula, persists to DB, and returns summary stats and breakdown.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Bulk alert ingestion completed successfully",
+                    content = @Content(schema = @Schema(implementation = BulkIngestionResponse.class)))
+    })
+    public ResponseEntity<BulkIngestionResponse> createIncidentsBulk(@RequestBody List<IncidentBulkItemDto> items) {
+        return ResponseEntity.ok(incidentService.bulkIngestIncidents(items));
+    }
+
     @PostMapping("/triage")
     @Operation(summary = "Run batch triage engine", description = "Executes factor normalization, fixed-weight scoring (Severity 25%, Business Impact 20%, Data Sensitivity 15%, Asset Importance 15%, Attack Confidence 15%, Affected Users 10%), 8-level tie-breaking, assigns priority levels & ranks, persists status TRIAGED to database, and returns ranked queue.")
     @ApiResponses(value = {

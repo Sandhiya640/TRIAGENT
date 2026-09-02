@@ -94,6 +94,19 @@ export const api = {
     return formatIncident(data);
   },
 
+  async bulkIngestIncidents(alertsArray) {
+    const data = await fetch(`${API_BASE_URL}/incidents/bulk`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(alertsArray),
+    }).then(handleResponse);
+
+    return {
+      ...data,
+      incidents: (data.incidents || []).map(formatIncident),
+    };
+  },
+
   async runTriage() {
     const data = await fetch(`${API_BASE_URL}/incidents/triage`, { method: "POST" }).then(handleResponse);
     return data.map(formatIncident);

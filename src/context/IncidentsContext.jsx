@@ -98,6 +98,23 @@ export function IncidentsProvider({ children }) {
     }
   }, []);
 
+  // Bulk ingest alerts -> POST /api/incidents/bulk
+  const bulkIngestIncidents = useCallback(async (alertsArray) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const res = await api.bulkIngestIncidents(alertsArray);
+      await refreshState();
+      return res;
+    } catch (err) {
+      console.error("[TRIAGENT API] Error during bulk alert ingestion:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [refreshState]);
+
   // Find incident across both triaged and incoming
   const getIncident = useCallback(
     (id) => {
@@ -146,6 +163,7 @@ export function IncidentsProvider({ children }) {
     hasRunOnce,
     loadDemoIncidents,
     addIncident,
+    bulkIngestIncidents,
     updateStatus,
     markInvestigating,
     markResolved,

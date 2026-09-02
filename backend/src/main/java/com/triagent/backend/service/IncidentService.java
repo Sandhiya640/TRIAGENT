@@ -67,6 +67,150 @@ public class IncidentService {
     }
 
     @Transactional
+    public BulkIngestionResponse bulkIngestIncidents(List<IncidentBulkItemDto> items) {
+        if (items == null || items.isEmpty()) {
+            return new BulkIngestionResponse(0, 0, 0, 0, 0, 0, 0, 0, Collections.emptyList(), Collections.emptyList());
+        }
+
+        Set<String> existingIds = new HashSet<>(incidentRepository.findAllIds());
+        Set<String> batchIds = new HashSet<>();
+
+        List<Incident> incidentsToSave = new ArrayList<>();
+        List<IncidentResponse> responses = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+
+        int totalProcessed = items.size();
+        int createdCount = 0;
+        int skippedCount = 0;
+        int failedCount = 0;
+
+        int criticalCount = 0;
+        int highCount = 0;
+        int mediumCount = 0;
+        int lowCount = 0;
+
+        int idCounter = 3001;
+
+        for (int i = 0; i < items.size(); i++) {
+            IncidentBulkItemDto item = items.get(i);
+            int recordNum = i + 1;
+
+            if (item == null) {
+                errors.add("Record #" + recordNum + ": Item object is null");
+                failedCount++;
+                continue;
+            }
+
+            String type = item.getIncidentType();
+            if (type == null || type.trim().isEmpty()) {
+                errors.add("Record #" + recordNum + ": Missing required incidentType field");
+                failedCount++;
+                continue;
+            }
+            type = type.trim();
+
+            String asset = item.getAffectedAsset();
+            if (asset == null || asset.trim().isEmpty()) {
+                asset = "Unspecified Asset";
+            } else {
+                asset = asset.trim();
+            }
+
+            String title = item.getTitle();
+            if (title == null || title.trim().isEmpty()) {
+                title = type;
+            } else {
+                title = title.trim();
+            }
+
+            String id = item.getIncidentId();
+            if (id != null && !id.trim().isEmpty()) {
+                id = id.trim();
+                if (existingIds.contains(id) || batchIds.contains(id)) {
+                    skippedCount++;
+                    continue;
+                }
+            } else {
+                while (true) {
+                    String candidateId = "INC-" + (idCounter++);
+                    if (!existingIds.contains(candidateId) && !batchIds.contains(candidateId)) {
+                        id = candidateId;
+                        break;
+                    }
+                }
+            }
+
+            batchIds.add(id);
+
+            int severity = item.getSeverity() != null ? Math.min(10, Math.max(1, item.getSeverity())) : 5;
+            int businessImpact = item.getBusinessImpact() != null ? Math.min(10, Math.max(1, item.getBusinessImpact())) : 5;
+            int dataSensitivity = item.getDataSensitivity() != null ? Math.min(10, Math.max(1, item.getDataSensitivity())) : 5;
+            int assetImportance = item.getAssetImportance() != null ? Math.min(10, Math.max(1, item.getAssetImportance())) : 5;
+            int attackConfidence = item.getAttackConfidence() != null ? Math.min(100, Math.max(0, item.getAttackConfidence())) : 50;
+            int affectedUsers = item.getAffectedUsers() != null ? Math.max(0, item.getAffectedUsers()) : 0;
+
+            String description = item.getDescription() != null && !item.getDescription().trim().isEmpty()
+                    ? item.getDescription().trim()
+                    : "No additional description provided.";
+
+            String action = item.getRecommendedAction() != null && !item.getRecommendedAction().trim().isEmpty()
+                    ? item.getRecommendedAction().trim()
+                    : "Review raw metrics and execute containment procedures.";
+
+            Instant detectedAt = Instant.now();
+            if (item.getDetectedAt() != null && !item.getDetectedAt().trim().isEmpty()) {
+                try {
+                    detectedAt = Instant.parse(item.getDetectedAt().trim());
+                } catch (Exception ignored) {
+                }
+            }
+
+            IncidentStatus initialStatus = IncidentStatus.AWAITING_TRIAGE;
+            if (item.getStatus() != null && !item.getStatus().trim().isEmpty()) {
+                try {
+                    initialStatus = IncidentStatus.valueOf(item.getStatus().trim().toUpperCase());
+                } catch (Exception ignored) {
+                }
+            }
+
+            Incident incident = new Incident(
+                    id, type, title, asset, detectedAt, affectedUsers,
+                    description, action, severity, businessImpact,
+                    dataSensitivity, assetImportance, attackConfidence
+            );
+            incident.setStatus(initialStatus);
+
+            IncidentResponse resp = priorityEngineService.computeAndBuildResponse(incident);
+            incident.setPriorityScore(resp.getScore());
+            incident.setPriorityLevel(resp.getLevel());
+
+            if (resp.getLevel() == com.triagent.backend.entity.PriorityLevel.CRITICAL) {
+                criticalCount++;
+            } else if (resp.getLevel() == com.triagent.backend.entity.PriorityLevel.HIGH) {
+                highCount++;
+            } else if (resp.getLevel() == com.triagent.backend.entity.PriorityLevel.MEDIUM) {
+                mediumCount++;
+            } else {
+                lowCount++;
+            }
+
+            incidentsToSave.add(incident);
+            responses.add(resp);
+            createdCount++;
+        }
+
+        if (!incidentsToSave.isEmpty()) {
+            incidentRepository.saveAll(incidentsToSave);
+        }
+
+        return new BulkIngestionResponse(
+                totalProcessed, createdCount, skippedCount, failedCount,
+                criticalCount, highCount, mediumCount, lowCount,
+                errors, responses
+        );
+    }
+
+    @Transactional
     public List<IncidentResponse> runTriage() {
         List<Incident> all = incidentRepository.findAll();
         if (all.isEmpty()) {
